@@ -1,0 +1,5 @@
+# Local environment values: a live database password and this
+# project's AWS profile. Ignored BEFORE the file is created, because
+# removing a committed password from the working tree does not remove
+# it from history - it has to be rotated.
+udagram/set_env.local.sh

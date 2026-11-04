@@ -25,7 +25,15 @@ module.exports = function (config) {
     colors: true,
     logLevel: config.LOG_INFO,
     autoWatch: true,
-    browsers: ['Chrome'],
-    singleRun: false
+    browsers: ['ChromeHeadlessNoSandbox'],
+    customLaunchers: {
+      // Containers and CI runners have no display and no sandbox
+      // privileges; without --no-sandbox Chrome exits immediately.
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox', '--disable-gpu']
+      }
+    },
+    singleRun: true
   });
 };

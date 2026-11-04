@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" width="720" height="300" role="img" aria-label="Pipeline: a push to main triggers build, then a manual hold, then deploy to Elastic Beanstalk and S3.">
+  <defs>
+    <marker id="parrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#44506b"/></marker>
+  </defs>
+  <rect width="720" height="300" fill="#ffffff"/>
+  <text x="24" y="34" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#141921">CircleCI pipeline</text>
+
+  <rect x="24" y="60" width="120" height="56" rx="8" fill="#eef1f5" stroke="#44506b" stroke-width="1.5"/>
+  <text x="84" y="84" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#141921">git push</text>
+  <text x="84" y="102" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#56616f">branch: main</text>
+  <path d="M144 88 H186" stroke="#44506b" stroke-width="1.8" fill="none" marker-end="url(#parrow)"/>
+
+  <rect x="186" y="46" width="200" height="180" rx="9" fill="#e0f0f1" stroke="#0d6b76" stroke-width="1.8"/>
+  <text x="286" y="68" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#0d6b76">JOB: build</text>
+  <rect x="200" y="78" width="172" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="286" y="93" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">install frontend</text>
+  <rect x="200" y="104" width="172" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="286" y="119" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">install API</text>
+  <rect x="200" y="130" width="172" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="286" y="145" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">lint frontend</text>
+  <rect x="200" y="156" width="172" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="286" y="171" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">test frontend (headless)</text>
+  <rect x="200" y="182" width="172" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="286" y="197" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">build frontend + API</text>
+  <text x="286" y="219" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#56616f">any non-zero exit stops the job</text>
+
+  <path d="M386 136 H428" stroke="#44506b" stroke-width="1.8" fill="none" marker-end="url(#parrow)"/>
+
+  <path d="M478 104 L512 136 L478 168 L444 136 Z" fill="#fdf2da" stroke="#8a5d00" stroke-width="1.8"/>
+  <text x="478" y="140" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#8a5d00">hold</text>
+  <text x="478" y="190" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#56616f">manual approval</text>
+  <text x="478" y="205" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#56616f">main branch only</text>
+
+  <path d="M512 136 H552" stroke="#44506b" stroke-width="1.8" fill="none" marker-end="url(#parrow)"/>
+
+  <rect x="552" y="78" width="144" height="116" rx="9" fill="#e2f2ea" stroke="#196b45" stroke-width="1.8"/>
+  <text x="624" y="100" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#196b45">JOB: deploy</text>
+  <rect x="564" y="110" width="120" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="624" y="125" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">API → Beanstalk</text>
+  <rect x="564" y="140" width="120" height="22" rx="4" fill="#ffffff" stroke="#9aa5b4"/><text x="624" y="155" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#141921">frontend → S3</text>
+  <text x="624" y="180" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#56616f">requires: hold</text>
+
+  <text x="24" y="262" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#56616f">The build job is unfiltered, so pull requests are built and tested before merge. Only hold and deploy are restricted to main.</text>
+  <text x="24" y="280" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#56616f">Secrets reach the pipeline from the CircleCI project settings and are never present in the repository.</text>
+</svg>

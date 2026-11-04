@@ -1,78 +1,157 @@
 version: 2.1
+
 orbs:
-  # orgs contain basc recipes and reproducible actions (install node, aws, etc.)
+  # Orbs are packaged, versioned recipes. Pinning them is deliberate: an
+  # unpinned orb changes under you and turns a reproducible pipeline into a
+  # moving target. If CircleCI reports a version does not exist, config
+  # validation fails before any job runs, which is the cheap failure.
   node: circleci/node@5.0.2
   eb: circleci/aws-elastic-beanstalk@2.0.1
   aws-cli: circleci/aws-cli@3.1.1
-  # different jobs are calles later in the workflows sections
+
 jobs:
+  # ---------------------------------------------------------------------
+  # build — runs on every push, on every branch.
+  #
+  # Its job is to answer one question: is this commit safe to ship? It
+  # installs both halves, lints, runs the unit tests, and compiles both
+  # applications. Any step exiting non-zero stops the rest, so the first
+  # real problem is the one you read about.
+  # ---------------------------------------------------------------------
   build:
     docker:
-      # the base image can run most needed actions with orbs
+      # Node 14 matches the version the application was written against.
+      # scripts/node-compat.js makes the build work on newer majors too, so
+      # this image can be raised later without editing any command.
       - image: "cimg/node:14.15"
     steps:
-      # install node and checkout code
       - node/install:
-          node-version: '14.15'         
+          node-version: '14.15'
       - checkout
-      # Use root level package.json to install dependencies in the frontend app
+
+      # Dependencies first, both halves. npm install resolves from
+      # package.json; the root scripts delegate into each sub-project so
+      # that CI runs exactly the commands a person runs locally.
       - run:
           name: Install Front-End Dependencies
           command: |
-            echo "NODE --version" 
-            echo $(node --version)
-            echo "NPM --version" 
-            echo $(npm --version)
+            echo "node $(node --version), npm $(npm --version)"
             npm run frontend:install
-      # TODO: Install dependencies in the the backend API          
+
+      # The API has its own package.json and its own dependency tree. The
+      # frontend install does not reach it.
       - run:
           name: Install API Dependencies
           command: |
-           echo "TODO: Install dependencies in the the backend API  "
-      # TODO: Lint the frontend
+            npm run api:install
+
+      # Lint before building. Style and correctness problems are cheaper to
+      # read as lint output than as a failed compile, and tslint catches
+      # things the compiler is happy to accept.
       - run:
           name: Front-End Lint
           command: |
-            echo "TODO: Lint the frontend"
-      # TODO: Build the frontend app
+            npm run frontend:lint
+
+      # Unit tests, headless and single-shot. karma.conf.js uses
+      # ChromeHeadlessNoSandbox because a CI container has no display and no
+      # sandbox privileges, and singleRun is true because a watcher would
+      # never exit and the job would hang until the platform timeout.
+      - run:
+          name: Front-End Unit Tests
+          command: |
+            npm test
+
+      # Production build: ahead-of-time compilation, minification and
+      # content-hashed bundle names, with no source maps. This is the
+      # artifact a user would receive, so it is the artifact that must
+      # compile here rather than for the first time during a deploy.
       - run:
           name: Front-End Build
           command: |
-            echo "TODO: Build the frontend app"
-      # TODO: Build the backend API      
+            npm run frontend:build
+
+      # The API is TypeScript and must be transpiled to JavaScript before it
+      # can run on the server. Building it here means a type error fails the
+      # pipeline rather than the deployment.
       - run:
           name: API Build
           command: |
-            echo "TODO: Build the backend API"
-  # deploy step will run only after manual approval
+            npm run api:build
+
+  # ---------------------------------------------------------------------
+  # deploy — runs only on main, and only after a human approves the hold.
+  #
+  # It installs, builds and ships both halves, as the project instructions
+  # require. The trade-off that creates is recorded in
+  # docs/Pipeline_description.md rather than left implicit here.
+  # ---------------------------------------------------------------------
   deploy:
     docker:
       - image: "cimg/base:stable"
-      # more setup needed for aws, node, elastic beanstalk
     steps:
       - node/install:
-          node-version: '14.15' 
+          node-version: '14.15'
+      # eb/setup installs the Elastic Beanstalk CLI; aws-cli/setup
+      # configures credentials from the project's environment variables.
+      # Both read AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and
+      # AWS_DEFAULT_REGION, which are set in CircleCI project settings and
+      # never committed.
       - eb/setup
       - aws-cli/setup
       - checkout
+
+      # A fresh container: nothing from the build job survives into this
+      # one, so both dependency trees are installed again here.
       - run:
-          name: Deploy App
-          # TODO: Install, build, deploy in both apps
+          name: Install Dependencies
           command: |
-            echo "# TODO: Install, build, deploy in both apps"
-            
+            npm run frontend:install
+            npm run api:install
+
+      # Compile both halves for production. The instructions require the
+      # deploy job to build, so this is a second compile of the same commit
+      # the build job already proved; Pipeline_description.md records what
+      # that costs and why it is done this way.
+      - run:
+          name: Build Both Applications
+          command: |
+            npm run build
+
+      # Ship it. The frontend syncs its built output to the S3 website
+      # bucket; the API is packaged and handed to Elastic Beanstalk, which
+      # rolls the new version onto the environment.
+      - run:
+          name: Deploy Both Applications
+          command: |
+            npm run deploy
+
 workflows:
   udagram:
     jobs:
+      # Every branch builds. A pull request that cannot build is visible
+      # before anyone reviews it.
       - build
+
+      # The approval gate. Nothing reaches AWS without a person choosing it,
+      # and the filter means that choice only ever appears on main.
       - hold:
           filters:
             branches:
               only:
-                - master
+                - main
           type: approval
           requires:
             - build
+
+      # Deploy carries the same filter as the gate it waits on. Relying on
+      # the dependency alone would mean the filter lives in one place and the
+      # job it protects in another, which is a difference nobody notices
+      # until a branch name changes.
       - deploy:
+          filters:
+            branches:
+              only:
+                - main
           requires:
             - hold
