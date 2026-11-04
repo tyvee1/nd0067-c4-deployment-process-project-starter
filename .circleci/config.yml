@@ -23,7 +23,7 @@ jobs:
       # Node 14 matches the version the application was written against.
       # scripts/node-compat.js makes the build work on newer majors too, so
       # this image can be raised later without editing any command.
-      - image: "cimg/node:14.15"
+      - image: "cimg/node:14.15-browsers"
     steps:
       - node/install:
           node-version: '14.15'
