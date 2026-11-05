@@ -58,6 +58,37 @@ jobs:
       # sandbox privileges, and singleRun is true because a watcher would
       # never exit and the job would hang until the platform timeout.
       - run:
+          name: Locate Chrome for karma
+          command: |
+            # karma-chrome-launcher looks for $CHROME_BIN first, then for a
+            # handful of binary names on PATH. The -browsers image has
+            # Chrome, but which name it installs has changed between image
+            # generations, and when the lookup fails karma reports "No
+            # binary for ChromeHeadless browser on your platform" -- which
+            # reads as a test failure rather than a missing browser.
+            #
+            # This finds it and says so, or fails HERE with the evidence
+            # needed to tell "Chrome is missing" from "Chrome is somewhere
+            # else". An ambiguous failure two steps later costs far more
+            # than this step does.
+            BIN="$(command -v google-chrome \
+                  || command -v google-chrome-stable \
+                  || command -v chromium \
+                  || command -v chromium-browser \
+                  || true)"
+            if [ -z "$BIN" ]; then
+              echo "No Chrome on this image. Evidence follows." >&2
+              echo "--- image ---" >&2; cat /etc/os-release 2>&1 | head -2 >&2
+              echo "--- PATH ---" >&2; echo "$PATH" >&2
+              echo "--- anything chrome-shaped ---" >&2
+              ls -la /usr/bin /opt 2>/dev/null | grep -i chrom >&2 || \
+                echo "(nothing)" >&2
+              exit 1
+            fi
+            echo "export CHROME_BIN=$BIN" >> "$BASH_ENV"
+            echo "CHROME_BIN=$BIN"
+            "$BIN" --version
+      - run:
           name: Front-End Unit Tests
           command: |
             npm test
