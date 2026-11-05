@@ -1,0 +1,21 @@
+branch-defaults:
+  default:
+    environment: udagram-api-prod
+deploy:
+  artifact: www/Archive.zip
+environment-defaults:
+  udagram-api-prod:
+    branch: null
+    repository: null
+global:
+  application_name: udagram
+  default_ec2_keyname: null
+  default_platform: Node.js 22
+  default_region: us-east-1
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: null
+  sc: null
+  workspace_type: Application

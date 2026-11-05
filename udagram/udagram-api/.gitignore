@@ -41,3 +41,6 @@ venv/
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+# eb init excludes the file it just created. CI has no interactive
+# step to recreate it, and `eb deploy` cannot run without it.
+!.elasticbeanstalk/config.yml
