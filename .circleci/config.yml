@@ -53,10 +53,6 @@ jobs:
           command: |
             npm run frontend:lint
 
-      # Unit tests, headless and single-shot. karma.conf.js uses
-      # ChromeHeadlessNoSandbox because a CI container has no display and no
-      # sandbox privileges, and singleRun is true because a watcher would
-      # never exit and the job would hang until the platform timeout.
       - run:
           name: Toolchain report, then Chrome for karma
           command: |
@@ -117,6 +113,10 @@ jobs:
             echo "export CHROME_BIN=$BIN" >> "$BASH_ENV"
             echo "CHROME_BIN=$BIN"
             "$BIN" --version
+      # Unit tests, headless and single-shot. karma.conf.js uses
+      # ChromeHeadlessNoSandbox because a CI container has no display and no
+      # sandbox privileges, and singleRun is true because a watcher would
+      # never exit and the job would hang until the platform timeout.
       - run:
           name: Front-End Unit Tests
           command: |
