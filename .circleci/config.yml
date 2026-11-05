@@ -58,19 +58,37 @@ jobs:
       # sandbox privileges, and singleRun is true because a watcher would
       # never exit and the job would hang until the platform timeout.
       - run:
-          name: Install and locate Chrome for karma
+          name: Toolchain report, then Chrome for karma
           command: |
-            # karma-chrome-launcher looks for $CHROME_BIN first, then for a
-            # handful of binary names on PATH. When the lookup fails karma
-            # reports "No binary for ChromeHeadless browser on your
-            # platform", which reads as a test failure rather than as a
-            # missing browser.
+            # THE REPORT COMES FIRST, AND IT IS NOT DECORATION.
             #
-            # The -browsers image variant was supposed to supply Chrome and
-            # on this runner it did not: /usr/bin and /opt held nothing
-            # chrome-shaped. Rather than keep guessing at image tags, this
-            # installs Chrome when it is absent. One download per build is
-            # cheaper than one pipeline per hypothesis.
+            # The same commit passes its tests locally and fails here with
+            # "__importDefault is not defined". Three explanations have
+            # been offered for that and two were wrong, because nothing in
+            # either log says which versions each machine actually
+            # resolved. package-lock.json is lockfileVersion 3 and this
+            # runner has npm 6, which cannot read it -- so CI resolves
+            # every range from package.json afresh and the two
+            # environments are free to disagree about any dependency.
+            #
+            # These four lines cost a second and end the guessing.
+            echo "node    $(node --version)"
+            echo "npm     $(npm --version)"
+            cd udagram/udagram-frontend
+            node -e 'const p=require("typescript/package.json");
+                     console.log("tsc    ", p.version)'
+            node -e 'try{const p=require("tslib/package.json"),
+                             t=require("tslib");
+                     console.log("tslib  ", p.version,
+                                 "__importDefault:", typeof t.__importDefault)}
+                     catch(e){console.log("tslib   ABSENT")}'
+            node -e 'console.log("angular", require("@angular/core/package.json").version)'
+            cd "$OLDPWD"
+
+            # karma-chrome-launcher looks for $CHROME_BIN first, then for a
+            # handful of binary names on PATH. The -browsers image variant
+            # did not supply one on this runner, so rather than keep
+            # guessing at image tags, install it when it is absent.
             probe() {
               command -v google-chrome || command -v google-chrome-stable \
                 || command -v chromium || command -v chromium-browser || true
