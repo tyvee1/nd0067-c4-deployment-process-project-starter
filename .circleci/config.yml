@@ -58,26 +58,37 @@ jobs:
       # sandbox privileges, and singleRun is true because a watcher would
       # never exit and the job would hang until the platform timeout.
       - run:
-          name: Locate Chrome for karma
+          name: Install and locate Chrome for karma
           command: |
             # karma-chrome-launcher looks for $CHROME_BIN first, then for a
-            # handful of binary names on PATH. The -browsers image has
-            # Chrome, but which name it installs has changed between image
-            # generations, and when the lookup fails karma reports "No
-            # binary for ChromeHeadless browser on your platform" -- which
-            # reads as a test failure rather than a missing browser.
+            # handful of binary names on PATH. When the lookup fails karma
+            # reports "No binary for ChromeHeadless browser on your
+            # platform", which reads as a test failure rather than as a
+            # missing browser.
             #
-            # This finds it and says so, or fails HERE with the evidence
-            # needed to tell "Chrome is missing" from "Chrome is somewhere
-            # else". An ambiguous failure two steps later costs far more
-            # than this step does.
-            BIN="$(command -v google-chrome \
-                  || command -v google-chrome-stable \
-                  || command -v chromium \
-                  || command -v chromium-browser \
-                  || true)"
+            # The -browsers image variant was supposed to supply Chrome and
+            # on this runner it did not: /usr/bin and /opt held nothing
+            # chrome-shaped. Rather than keep guessing at image tags, this
+            # installs Chrome when it is absent. One download per build is
+            # cheaper than one pipeline per hypothesis.
+            probe() {
+              command -v google-chrome || command -v google-chrome-stable \
+                || command -v chromium || command -v chromium-browser || true
+            }
+            BIN="$(probe)"
             if [ -z "$BIN" ]; then
-              echo "No Chrome on this image. Evidence follows." >&2
+              echo "No Chrome on this image; installing google-chrome-stable."
+              curl -fsSL -o /tmp/chrome.deb \
+                https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+                || { echo "could not download Chrome" >&2; exit 1; }
+              sudo apt-get update -qq
+              # apt-get install of a local .deb pulls its dependencies;
+              # `dpkg -i` would leave them unmet and Chrome unrunnable.
+              sudo apt-get install -y -qq /tmp/chrome.deb
+              BIN="$(probe)"
+            fi
+            if [ -z "$BIN" ]; then
+              echo "Chrome is still absent after installing. Evidence:" >&2
               echo "--- image ---" >&2; cat /etc/os-release 2>&1 | head -2 >&2
               echo "--- PATH ---" >&2; echo "$PATH" >&2
               echo "--- anything chrome-shaped ---" >&2
