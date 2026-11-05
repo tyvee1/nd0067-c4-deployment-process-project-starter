@@ -53,6 +53,10 @@ jobs:
           command: |
             npm run frontend:lint
 
+      # Report the versions this runner resolved, then make sure a
+      # browser exists for karma to drive. Both run before the tests
+      # so a version mismatch or a missing Chrome is reported where it
+      # happens, not as a test failure three steps later.
       - run:
           name: Toolchain report, then Chrome for karma
           command: |
