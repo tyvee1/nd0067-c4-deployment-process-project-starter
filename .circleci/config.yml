@@ -190,6 +190,46 @@ jobs:
           command: |
             npm run deploy
 
+  # deploy-staging — every branch that is NOT main, and with no
+  # approval gate. Production has one because a person should
+  # choose when the public site changes; the same gate on staging
+  # would make it as slow to reach as production, which removes
+  # the reason to have a staging environment at all.
+  #
+  # The environment block below is why no script is duplicated:
+  # bin/deploy.sh and the api's deploy script both read these two
+  # variables, so the same `npm run deploy` lands elsewhere.
+  deploy-staging:
+    docker:
+      - image: "cimg/base:stable"
+    environment:
+      EB_ENV: udagram-api-staging
+      AWS_BUCKET: udagram-site-965672055380-staging
+    steps:
+      - node/install:
+          node-version: '14.15'
+      # Same toolchain as the production deploy: the EB CLI, then
+      # the AWS CLI reading credentials from the project's
+      # environment variables.
+      - eb/setup
+      - aws-cli/setup
+      - checkout
+      # A fresh container: nothing from the build job survives.
+      - run:
+          name: Install Dependencies
+          command: |
+            npm run frontend:install
+            npm run api:install
+      # Compile both halves before shipping either.
+      - run:
+          name: Build Both Applications
+          command: npm run build
+      # Ship to STAGING: the two variables above redirect the
+      # identical deploy scripts away from production.
+      - run:
+          name: Deploy Both Applications to Staging
+          command: npm run deploy
+
 workflows:
   udagram:
     jobs:
@@ -219,3 +259,15 @@ workflows:
                 - main
           requires:
             - hold
+
+      # Staging takes everything main does not. These filters are
+      # complements of the production ones, so every commit
+      # reaches exactly one environment — never both, never
+      # neither.
+      - deploy-staging:
+          filters:
+            branches:
+              ignore:
+                - main
+          requires:
+            - build
